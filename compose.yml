@@ -1,0 +1,69 @@
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - 127.0.0.1:27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - db-data:/data/db
+      - ./mongo/data:/home/data
+    working_dir: /home/data
+
+  backend:
+    image: node
+    user: root
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://root:password@db:5432/app
+      - JWT_SECRET=998c2614eb0acf4eea946414667e78598e286a6c6b3911602f8b23a76811196b
+      - MONGO_URL=mongodb://root:password@mongodb:27017/app?authSource=admin
+    ports:
+      - 3000:3000
+    working_dir: /home/app
+    volumes:
+      - ./backend:/home/app
+      - /home/app/node_modules
+    command: sh -c "npm install && npm install -g sequelize-cli && npm run dev"
+    depends_on:
+      - db
+      - mongodb
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: julupeer@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - 5050:80
+    depends_on:
+      - db
+
+  frontend:
+    image: node
+    user: root
+    working_dir: /home/node
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - 8080:8080
+    environment:
+      - NODE_ENV=development 
+    volumes:
+      - ./frontend:/home/node
+      - /node/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  db-data: 
+  pg-data: 
